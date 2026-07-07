@@ -1,0 +1,1693 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FakeOS — Codium • Blender • VideoPad</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --bg2:#0e151e;
+      --panel:#0f1722;
+      --panel2:#111c2a;
+      --line:#1c2a3b;
+      --line2:#23354b;
+      --text:#d7dde6;
+      --muted:#93a0b4;
+      --accent:#6aa6ff;
+      --good:#37d67a;
+      --bad:#ff5c7a;
+
+      --shadow: 0 12px 40px rgba(0,0,0,.55);
+      --radius: 12px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: radial-gradient(1200px 700px at 20% 10%, rgba(106,166,255,.15), transparent 60%),
+                  radial-gradient(900px 600px at 80% 30%, rgba(55,214,122,.10), transparent 55%),
+                  linear-gradient(180deg, var(--bg), #070a0e 70%);
+      color:var(--text);
+      overflow:hidden;
+      user-select:none;
+      font-family:var(--sans);
+    }
+    /* Desktop */
+    #desktop{
+      position:fixed; inset:0;
+      padding:14px 14px 54px 14px;
+    }
+    .wallpaper-grid{
+      position:absolute; inset:0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 44px 44px;
+      opacity:.35;
+      pointer-events:none;
+    }
+    /* Desktop icons */
+    #icons{
+      position:absolute; inset:16px auto 70px 16px;
+      width:220px;
+      display:flex; flex-direction:column; gap:10px;
+      pointer-events:auto;
+    }
+    .icon{
+      display:flex; align-items:center; gap:10px;
+      padding:8px 10px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(15,23,34,.55);
+      border-radius: 12px;
+      cursor:pointer;
+      backdrop-filter: blur(8px);
+    }
+    .icon:hover{border-color: rgba(106,166,255,.45)}
+    .icon .glyph{
+      width:34px;height:34px;border-radius:10px;
+      display:grid;place-items:center;
+      background: rgba(106,166,255,.14);
+      border:1px solid rgba(106,166,255,.25);
+      font-weight:700;
+    }
+    .icon .meta{display:flex; flex-direction:column; line-height:1.1}
+    .icon .meta b{font-size:13px}
+    .icon .meta span{font-size:11px;color:var(--muted); font-family:var(--mono)}
+
+    /* Taskbar */
+    #taskbar{
+      position:fixed; left:0; right:0; bottom:0;
+      height:54px;
+      background: rgba(10,14,20,.72);
+      border-top:1px solid rgba(255,255,255,.08);
+      backdrop-filter: blur(12px);
+      display:flex; align-items:center;
+      padding:0 10px;
+      gap:10px;
+      z-index: 999999;
+    }
+    #startBtn{
+      height:36px; padding:0 12px;
+      border-radius: 10px;
+      background: rgba(106,166,255,.18);
+      border:1px solid rgba(106,166,255,.25);
+      color:var(--text);
+      cursor:pointer;
+      display:flex; align-items:center; gap:8px;
+      font-weight:700;
+    }
+    #startBtn:hover{border-color: rgba(106,166,255,.55)}
+    #taskItems{
+      display:flex; gap:8px; align-items:center;
+      flex:1;
+      overflow:auto;
+      padding-bottom:4px;
+    }
+    .taskItem{
+      height:36px;
+      padding:0 10px;
+      display:flex; align-items:center; gap:8px;
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(15,23,34,.55);
+      cursor:pointer;
+      white-space:nowrap;
+      font-size:12px;
+    }
+    .taskItem.active{border-color: rgba(106,166,255,.60)}
+    .taskItem .dot{width:8px;height:8px;border-radius:99px;background:rgba(106,166,255,.9)}
+    #clock{
+      font-family:var(--mono);
+      color:var(--muted);
+      font-size:12px;
+      padding:0 10px;
+    }
+
+    /* Start menu */
+    #startMenu{
+      position:fixed;
+      left:10px; bottom:62px;
+      width:320px;
+      background: rgba(15,23,34,.90);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      padding:10px;
+      display:none;
+      z-index: 999998;
+    }
+    #startMenu header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:8px 8px 10px 8px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      margin-bottom:8px;
+    }
+    #startMenu header b{font-size:13px}
+    #startMenu header span{font-size:11px;color:var(--muted);font-family:var(--mono)}
+    .startApp{
+      display:flex; align-items:center; gap:10px;
+      padding:10px;
+      border-radius: 12px;
+      cursor:pointer;
+      border:1px solid transparent;
+    }
+    .startApp:hover{
+      background: rgba(106,166,255,.10);
+      border-color: rgba(106,166,255,.25);
+    }
+    .startApp .glyph{
+      width:34px;height:34px;border-radius:10px;
+      display:grid; place-items:center;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      font-weight:800;
+    }
+    .startApp .info{display:flex; flex-direction:column; line-height:1.1}
+    .startApp .info b{font-size:13px}
+    .startApp .info span{font-size:11px;color:var(--muted);font-family:var(--mono)}
+
+    /* Window chrome */
+    .window{
+      position:absolute;
+      background: rgba(15,23,34,.92);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      min-width: 320px;
+      min-height: 220px;
+      backdrop-filter: blur(14px);
+    }
+    .titlebar{
+      height: 38px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 0 10px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border-bottom:1px solid rgba(255,255,255,.08);
+      cursor: grab;
+    }
+    .titlebar:active{cursor:grabbing}
+    .titlebar .appicon{
+      width:22px;height:22px;border-radius:7px;
+      display:grid;place-items:center;
+      background: rgba(106,166,255,.18);
+      border:1px solid rgba(106,166,255,.25);
+      font-weight:800;
+      font-size:12px;
+      flex:0 0 auto;
+    }
+    .titlebar .title{
+      flex:1;
+      font-size:12px;
+      color:var(--text);
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-family: var(--mono);
+    }
+    .winBtns{
+      display:flex; gap:8px; align-items:center;
+    }
+    .winBtn{
+      width:26px;height:22px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+      display:grid; place-items:center;
+      cursor:pointer;
+      font-size:12px;
+    }
+    .winBtn:hover{border-color: rgba(255,255,255,.22)}
+    .winBtn.close:hover{border-color: rgba(255,92,122,.65); background: rgba(255,92,122,.15)}
+    .content{
+      height: calc(100% - 38px);
+      display:flex;
+      overflow:hidden;
+    }
+
+    /* Resizer */
+    .resizer{
+      position:absolute; right:0; bottom:0;
+      width:14px; height:14px;
+      cursor:nwse-resize;
+      background: linear-gradient(135deg, transparent 45%, rgba(255,255,255,.20) 45%, rgba(255,255,255,.20) 55%, transparent 55%);
+      opacity:.6;
+    }
+
+    /* Generic panels */
+    .pane{
+      border-right:1px solid rgba(255,255,255,.08);
+      background: rgba(10,14,20,.35);
+    }
+    .paneHeader{
+      padding:10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      font-size:12px;
+      font-family:var(--mono);
+      color:var(--muted);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .pill{
+      font-size:11px;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color:var(--muted);
+      font-family:var(--mono);
+    }
+
+    /* Terminal */
+    .terminal{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      background: rgba(6,9,13,.35);
+    }
+    .termOut{
+      flex:1;
+      padding:10px;
+      overflow:auto;
+      font-family:var(--mono);
+      font-size:12px;
+      line-height:1.45;
+      white-space:pre-wrap;
+      user-select:text;
+    }
+    .termIn{
+      display:flex;
+      gap:10px;
+      padding:10px;
+      border-top:1px solid rgba(255,255,255,.08);
+      background: rgba(15,23,34,.35);
+      font-family:var(--mono);
+    }
+    .prompt{color: rgba(106,166,255,.95)}
+    .termIn input{
+      flex:1;
+      background: rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 10px;
+      padding:8px 10px;
+      color:var(--text);
+      font-family:var(--mono);
+      outline:none;
+    }
+    .termIn input:focus{border-color: rgba(106,166,255,.45)}
+    .hint{color:var(--muted)}
+
+    /* Codium */
+    .codium{
+      flex:1;
+      display:flex;
+      min-width: 0;
+    }
+    .codium .sidebar{
+      width: 260px;
+      background: rgba(10,14,20,.35);
+      border-right:1px solid rgba(255,255,255,.08);
+      display:flex; flex-direction:column;
+    }
+    .tree{padding:10px; overflow:auto; font-family:var(--mono); font-size:12px}
+    .tree .node{
+      padding:6px 8px;
+      border-radius:10px;
+      cursor:pointer;
+      display:flex; align-items:center; gap:8px;
+      border:1px solid transparent;
+    }
+    .tree .node:hover{background: rgba(106,166,255,.10); border-color: rgba(106,166,255,.18)}
+    .tree .node .t{color:var(--muted)}
+    .tree .node .name{color:var(--text)}
+    .codium .main{
+      flex:1; display:flex; flex-direction:column; min-width:0;
+    }
+    .tabs{
+      height: 34px;
+      display:flex;
+      gap:6px;
+      align-items:center;
+      padding:0 10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background: rgba(15,23,34,.25);
+      overflow:auto;
+    }
+    .tab{
+      padding:6px 10px;
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      font-family:var(--mono);
+      font-size:12px;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .tab.active{border-color: rgba(106,166,255,.55); background: rgba(106,166,255,.12)}
+    .editorWrap{
+      flex:1;
+      display:flex; flex-direction:column;
+      min-height:0;
+    }
+    textarea.editor{
+      flex:1;
+      width:100%;
+      resize:none;
+      border:none;
+      outline:none;
+      padding:12px;
+      background: rgba(6,9,13,.25);
+      color:var(--text);
+      font-family:var(--mono);
+      font-size:12px;
+      line-height:1.5;
+      user-select:text;
+    }
+    .status{
+      height: 28px;
+      border-top:1px solid rgba(255,255,255,.08);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 10px;
+      font-family:var(--mono);
+      font-size:11px;
+      color:var(--muted);
+      background: rgba(15,23,34,.35);
+    }
+    .btn{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color:var(--text);
+      border-radius:10px;
+      padding:7px 10px;
+      cursor:pointer;
+      font-family:var(--mono);
+      font-size:12px;
+    }
+    .btn:hover{border-color: rgba(106,166,255,.45)}
+
+    /* Blender mock */
+    .blender{
+      flex:1; display:flex; min-width:0;
+    }
+    .blender .left{
+      width:240px; border-right:1px solid rgba(255,255,255,.08);
+      background: rgba(10,14,20,.35);
+      display:flex; flex-direction:column;
+    }
+    .list{padding:10px; overflow:auto; font-family:var(--mono); font-size:12px}
+    .item{
+      padding:8px; border-radius:10px; cursor:pointer;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.15);
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:8px;
+    }
+    .item.active{border-color: rgba(106,166,255,.55); background: rgba(106,166,255,.10)}
+    .blender .viewport{
+      flex:1; display:flex; flex-direction:column; min-width:0;
+    }
+    .viewportTop{
+      padding:10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      display:flex; gap:8px; align-items:center;
+      background: rgba(15,23,34,.25);
+      font-family:var(--mono); font-size:12px; color:var(--muted);
+    }
+    .canvasWrap{flex:1; min-height:0; display:grid; place-items:center; background: rgba(6,9,13,.22)}
+    canvas#blCanvas{
+      width: 100%;
+      height: 100%;
+      display:block;
+    }
+    .props{
+      width:280px; border-left:1px solid rgba(255,255,255,.08);
+      background: rgba(10,14,20,.35);
+      display:flex; flex-direction:column;
+    }
+    .propRow{
+      display:flex; gap:8px; align-items:center;
+      padding:8px 10px;
+      font-family:var(--mono); font-size:12px;
+      color:var(--muted);
+    }
+    .propRow input[type="range"]{flex:1}
+    .propRow b{color:var(--text); width:22px; text-align:right}
+
+    /* VideoPad mock */
+    .videopad{
+      flex:1; display:flex; min-width:0;
+    }
+    .videopad .bin{
+      width:260px; border-right:1px solid rgba(255,255,255,.08);
+      background: rgba(10,14,20,.35);
+      display:flex; flex-direction:column;
+    }
+    .binItems{padding:10px; overflow:auto; font-family:var(--mono); font-size:12px}
+    .media{
+      padding:8px; border-radius:10px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.15);
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:8px;
+      cursor:pointer;
+    }
+    .media:hover{border-color: rgba(106,166,255,.45)}
+    .vpMain{flex:1; display:flex; flex-direction:column; min-width:0}
+    .preview{
+      flex:1; min-height:0;
+      display:flex; flex-direction:column;
+      background: rgba(6,9,13,.22);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .preview header{
+      padding:10px;
+      display:flex; align-items:center; justify-content:space-between;
+      font-family:var(--mono); font-size:12px; color:var(--muted);
+      background: rgba(15,23,34,.25);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .preview .screen{
+      flex:1; display:grid; place-items:center;
+      font-family:var(--mono); color:rgba(215,221,230,.85);
+    }
+    .timeline{
+      height: 180px;
+      display:flex; flex-direction:column;
+      background: rgba(10,14,20,.35);
+    }
+    .tracks{
+      flex:1; overflow:auto;
+      padding:10px;
+      display:flex; flex-direction:column; gap:10px;
+      font-family:var(--mono); font-size:12px;
+    }
+    .track{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 12px;
+      padding:10px;
+      background: rgba(0,0,0,.15);
+      position:relative;
+      min-height: 52px;
+    }
+    .clip{
+      position:absolute; top:10px; height:32px;
+      border-radius: 10px;
+      border:1px solid rgba(106,166,255,.45);
+      background: rgba(106,166,255,.14);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 10px;
+      cursor:ew-resize;
+      min-width: 110px;
+      color: var(--text);
+    }
+    .clip small{color:var(--muted)}
+    .clip .handle{
+      width:10px; height:18px;
+      border-radius:6px;
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.14);
+      cursor:ew-resize;
+      margin-left:10px;
+    }
+
+    /* Utility */
+    .kbd{
+      font-family:var(--mono);
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      padding:2px 6px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div id="desktop">
+    <div class="wallpaper-grid"></div>
+
+    <div id="icons">
+      <div class="icon" data-app="codium">
+        <div class="glyph">C</div>
+        <div class="meta"><b>Codium</b><span>editor.exe</span></div>
+      </div>
+      <div class="icon" data-app="blender">
+        <div class="glyph">B</div>
+        <div class="meta"><b>Blender</b><span>blender.exe</span></div>
+      </div>
+      <div class="icon" data-app="videopad">
+        <div class="glyph">V</div>
+        <div class="meta"><b>VideoPad</b><span>videopad.exe</span></div>
+      </div>
+      <div class="icon" data-app="terminal">
+        <div class="glyph">></div>
+        <div class="meta"><b>Terminal</b><span>shell</span></div>
+      </div>
+    </div>
+
+    <!-- windows injected here -->
+  </div>
+
+  <div id="taskbar">
+    <button id="startBtn">⬢ <span>Start</span></button>
+    <div id="taskItems"></div>
+    <div id="clock"></div>
+  </div>
+
+  <div id="startMenu">
+    <header>
+      <b>FakeOS Launcher</b>
+      <span>apps + filesystem</span>
+    </header>
+    <div class="startApp" data-app="codium">
+      <div class="glyph">C</div>
+      <div class="info"><b>Codium</b><span>Open editor</span></div>
+    </div>
+    <div class="startApp" data-app="blender">
+      <div class="glyph">B</div>
+      <div class="info"><b>Blender</b><span>Mock 3D workspace</span></div>
+    </div>
+    <div class="startApp" data-app="videopad">
+      <div class="glyph">V</div>
+      <div class="info"><b>VideoPad</b><span>Mock NLE timeline</span></div>
+    </div>
+    <div class="startApp" data-app="terminal">
+      <div class="glyph">></div>
+      <div class="info"><b>Terminal</b><span>FakeFS shell</span></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  /* ==========================================================
+     FakeFS (in-memory)
+     - dirs: {type:"dir", children: Map(name -> node)}
+     - files:{type:"file", content:"..."}
+  ========================================================== */
+  const FS = (() => {
+    const dir = () => ({ type:"dir", children: new Map() });
+    const file = (content="") => ({ type:"file", content });
+
+    const root = dir();
+    const pathSplit = (p) => p.replace(/\/+/g,"/").replace(/\/$/,"").split("/").filter(Boolean);
+
+    const getNode = (p, cwd="/") => {
+      const abs = resolve(p, cwd);
+      const parts = pathSplit(abs);
+      let cur = root;
+      for (const part of parts) {
+        if (cur.type !== "dir") return null;
+        cur = cur.children.get(part);
+        if (!cur) return null;
+      }
+      return cur;
+    };
+
+    const ensureDir = (p, cwd="/") => {
+      const abs = resolve(p, cwd);
+      const parts = pathSplit(abs);
+      let cur = root;
+      for (const part of parts) {
+        let nxt = cur.children.get(part);
+        if (!nxt) { nxt = dir(); cur.children.set(part, nxt); }
+        if (nxt.type !== "dir") throw new Error("Path segment is not a dir: " + part);
+        cur = nxt;
+      }
+      return cur;
+    };
+
+    const writeFile = (p, content, cwd="/") => {
+      const abs = resolve(p, cwd);
+      const parts = pathSplit(abs);
+      const name = parts.pop();
+      const parent = ensureDir("/" + parts.join("/"), "/");
+      parent.children.set(name, file(content));
+      return abs;
+    };
+
+    const readFile = (p, cwd="/") => {
+      const n = getNode(p, cwd);
+      if (!n) throw new Error("No such file: " + p);
+      if (n.type !== "file") throw new Error("Not a file: " + p);
+      return n.content;
+    };
+
+    const listDir = (p, cwd="/") => {
+      const n = getNode(p, cwd) || (p === "/" ? root : null);
+      if (!n) throw new Error("No such directory: " + p);
+      if (n.type !== "dir") throw new Error("Not a directory: " + p);
+      return [...n.children.entries()].map(([name, node]) => ({
+        name,
+        type: node.type
+      })).sort((a,b)=> (a.type===b.type ? a.name.localeCompare(b.name) : a.type==="dir" ? -1 : 1));
+    };
+
+    const rm = (p, cwd="/") => {
+      const abs = resolve(p, cwd);
+      const parts = pathSplit(abs);
+      const name = parts.pop();
+      const parent = getNode("/" + parts.join("/"), "/") || root;
+      if (!parent || parent.type!=="dir") throw new Error("Bad path");
+      if (!parent.children.has(name)) throw new Error("No such path: " + p);
+      parent.children.delete(name);
+      return abs;
+    };
+
+    const resolve = (p, cwd="/") => {
+      if (!p) return cwd;
+      if (p.startsWith("/")) return norm(p);
+      return norm((cwd.endsWith("/")?cwd:cwd+"/") + p);
+    };
+
+    const norm = (p) => {
+      const parts = p.split("/").filter(Boolean);
+      const stack = [];
+      for (const part of parts) {
+        if (part === ".") continue;
+        if (part === "..") stack.pop();
+        else stack.push(part);
+      }
+      return "/" + stack.join("/");
+    };
+
+    // seed
+    ensureDir("/home/student", "/");
+    ensureDir("/projects/pbinfo", "/");
+    writeFile("/home/student/README.txt",
+`FakeOS demo
+- open apps from Start or desktop icons
+- terminal has a FakeFS
+
+Try:
+  ls
+  cd /projects/pbinfo
+  ls
+  cat lesson.md
+  open lesson.md
+  open /home/student/README.txt
+`, "/");
+    writeFile("/projects/pbinfo/lesson.md",
+`# Lesson: Algorithms (demo)
+This is stored in FakeFS.
+
+- edit in Codium
+- open via terminal:  open lesson.md
+`, "/");
+    writeFile("/projects/pbinfo/main.cpp",
+`#include <bits/stdc++.h>
+using namespace std;
+int main(){
+  ios::sync_with_stdio(false);
+  cin.tie(nullptr);
+  cout << "Hello from FakeOS!" << "\\n";
+}
+`, "/");
+
+    return { root, getNode, ensureDir, writeFile, readFile, listDir, rm, resolve, norm };
+  })();
+
+  /* ==========================================================
+     Window Manager
+  ========================================================== */
+  const desktop = document.getElementById("desktop");
+  const taskItems = document.getElementById("taskItems");
+  const startBtn = document.getElementById("startBtn");
+  const startMenu = document.getElementById("startMenu");
+
+  let zTop = 10;
+  const windows = new Map(); // id -> state
+  const tasks = new Map();   // id -> task element
+
+  const uid = () => Math.random().toString(16).slice(2,10);
+
+  function bringToFront(winId){
+    const st = windows.get(winId);
+    if (!st) return;
+    zTop += 1;
+    st.el.style.zIndex = String(zTop);
+    windows.forEach(w => w.el.classList.remove("focused"));
+    st.el.classList.add("focused");
+
+    tasks.forEach(t => t.classList.remove("active"));
+    const ti = tasks.get(winId);
+    if (ti) ti.classList.add("active");
+  }
+
+  function createTaskbarItem(winId, title){
+    const el = document.createElement("div");
+    el.className = "taskItem active";
+    el.innerHTML = `<span class="dot"></span><span>${escapeHtml(title)}</span>`;
+    el.addEventListener("click", () => {
+      const st = windows.get(winId);
+      if (!st) return;
+      if (st.minimized) {
+        st.minimized = false;
+        st.el.style.display = "";
+      } else {
+        // toggle minimize
+        st.minimized = true;
+        st.el.style.display = "none";
+      }
+    });
+    taskItems.appendChild(el);
+    tasks.set(winId, el);
+  }
+
+  function destroyWindow(winId){
+    const st = windows.get(winId);
+    if (!st) return;
+    st.el.remove();
+    windows.delete(winId);
+    const ti = tasks.get(winId);
+    if (ti) ti.remove();
+    tasks.delete(winId);
+  }
+
+  function setTitle(winId, title){
+    const st = windows.get(winId);
+    if (!st) return;
+    st.titleEl.textContent = title;
+    const ti = tasks.get(winId);
+    if (ti) ti.querySelector("span:last-child").textContent = title;
+  }
+
+  function createWindow({ appId, title, x=260, y=90, w=820, h=520, icon="⬢", contentBuilder }){
+    const winId = uid();
+    const el = document.createElement("div");
+    el.className = "window";
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    el.style.width = w + "px";
+    el.style.height = h + "px";
+    el.style.zIndex = String(++zTop);
+
+    el.innerHTML = `
+      <div class="titlebar">
+        <div class="appicon">${escapeHtml(icon)}</div>
+        <div class="title"></div>
+        <div class="winBtns">
+          <div class="winBtn min" title="Minimize">—</div>
+          <div class="winBtn max" title="Maximize">▢</div>
+          <div class="winBtn close" title="Close">✕</div>
+        </div>
+      </div>
+      <div class="content"></div>
+      <div class="resizer" title="Resize"></div>
+    `;
+    desktop.appendChild(el);
+
+    const titleEl = el.querySelector(".title");
+    titleEl.textContent = title;
+
+    const content = el.querySelector(".content");
+    const btnMin = el.querySelector(".winBtn.min");
+    const btnMax = el.querySelector(".winBtn.max");
+    const btnClose = el.querySelector(".winBtn.close");
+    const titlebar = el.querySelector(".titlebar");
+    const resizer = el.querySelector(".resizer");
+
+    const st = {
+      id: winId, appId, el, titleEl, contentEl: content,
+      minimized: false,
+      maximized: false,
+      restore: { x, y, w, h }
+    };
+    windows.set(winId, st);
+
+    createTaskbarItem(winId, title);
+    bringToFront(winId);
+
+    // focus on click
+    el.addEventListener("mousedown", () => bringToFront(winId));
+
+    // close / min / max
+    btnClose.addEventListener("click", (e)=>{ e.stopPropagation(); destroyWindow(winId); });
+    btnMin.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      st.minimized = true;
+      el.style.display = "none";
+    });
+    btnMax.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      toggleMaximize(winId);
+    });
+
+    // drag
+    titlebar.addEventListener("mousedown", (e)=>startDrag(e, winId));
+
+    // resize
+    resizer.addEventListener("mousedown", (e)=>startResize(e, winId));
+
+    // build content
+    contentBuilder?.(st);
+
+    return winId;
+  }
+
+  function toggleMaximize(winId){
+    const st = windows.get(winId);
+    if (!st) return;
+    if (!st.maximized) {
+      const r = st.el.getBoundingClientRect();
+      st.restore = { x:r.left, y:r.top, w:r.width, h:r.height };
+      st.el.style.left = "12px";
+      st.el.style.top = "12px";
+      st.el.style.width = (window.innerWidth - 24) + "px";
+      st.el.style.height = (window.innerHeight - 78) + "px";
+      st.maximized = true;
+    } else {
+      st.el.style.left = st.restore.x + "px";
+      st.el.style.top = st.restore.y + "px";
+      st.el.style.width = st.restore.w + "px";
+      st.el.style.height = st.restore.h + "px";
+      st.maximized = false;
+    }
+    // notify app
+    st.el.dispatchEvent(new CustomEvent("win:resize"));
+  }
+
+  function startDrag(e, winId){
+    const st = windows.get(winId);
+    if (!st || st.maximized) return;
+    bringToFront(winId);
+    const rect = st.el.getBoundingClientRect();
+    const ox = e.clientX - rect.left;
+    const oy = e.clientY - rect.top;
+
+    const onMove = (ev)=>{
+      const nx = clamp(ev.clientX - ox, 0, window.innerWidth - 80);
+      const ny = clamp(ev.clientY - oy, 0, window.innerHeight - 120);
+      st.el.style.left = nx + "px";
+      st.el.style.top = ny + "px";
+    };
+    const onUp = ()=>{
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
+  function startResize(e, winId){
+    const st = windows.get(winId);
+    if (!st || st.maximized) return;
+    bringToFront(winId);
+    const rect = st.el.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const sw = rect.width, sh = rect.height;
+
+    const onMove = (ev)=>{
+      const nw = clamp(sw + (ev.clientX - sx), 320, window.innerWidth - rect.left - 10);
+      const nh = clamp(sh + (ev.clientY - sy), 220, window.innerHeight - rect.top - 70);
+      st.el.style.width = nw + "px";
+      st.el.style.height = nh + "px";
+      st.el.dispatchEvent(new CustomEvent("win:resize"));
+    };
+    const onUp = ()=>{
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
+  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+  function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  /* ==========================================================
+     Apps
+  ========================================================== */
+
+  function openTerminal(){
+    return createWindow({
+      appId:"terminal",
+      title:"Terminal — FakeFS",
+      x: 260, y: 120, w: 780, h: 520,
+      icon: ">",
+      contentBuilder: (st) => {
+        const wrap = document.createElement("div");
+        wrap.className = "terminal";
+        wrap.innerHTML = `
+          <div class="termOut"></div>
+          <div class="termIn">
+            <span class="prompt"></span>
+            <input spellcheck="false" autocomplete="off" />
+          </div>
+        `;
+        st.contentEl.appendChild(wrap);
+
+        const out = wrap.querySelector(".termOut");
+        const input = wrap.querySelector("input");
+        const promptEl = wrap.querySelector(".prompt");
+
+        const shell = {
+          cwd: "/home/student",
+          history: [],
+          hIndex: 0
+        };
+
+        const setPrompt = () => {
+          promptEl.textContent = `student@fakeos:${shell.cwd}$`;
+        };
+        const println = (txt="") => {
+          out.textContent += txt + "\n";
+          out.scrollTop = out.scrollHeight;
+        };
+
+        function help(){
+          println(
+`Commands:
+  ls [path]        list directory
+  cd <path>        change directory
+  pwd              print working directory
+  cat <file>       show file
+  open <file>      open file in Codium
+  mkdir <dir>      make directory
+  touch <file>     create empty file
+  write <file>     write (prompts)
+  rm <path>        delete file/dir node
+  clear            clear screen
+  help             this help
+
+Tips:
+  open /projects/pbinfo/lesson.md
+  open /projects/pbinfo/main.cpp
+`);
+        }
+
+        function cmd_ls(args){
+          const p = args[0] || shell.cwd;
+          const items = FS.listDir(p, shell.cwd);
+          const line = items.map(it => it.type==="dir" ? it.name + "/" : it.name).join("  ");
+          println(line || "");
+        }
+        function cmd_cd(args){
+          const p = args[0];
+          if (!p) { shell.cwd = "/home/student"; setPrompt(); return; }
+          const abs = FS.resolve(p, shell.cwd);
+          const n = FS.getNode(abs, "/") || (abs === "/" ? {type:"dir"} : null);
+          if (!n || n.type !== "dir") throw new Error("Not a directory: " + p);
+          shell.cwd = abs;
+          setPrompt();
+        }
+        function cmd_pwd(){ println(shell.cwd); }
+        function cmd_cat(args){
+          if (!args[0]) throw new Error("cat: missing file");
+          println(FS.readFile(args[0], shell.cwd));
+        }
+        function cmd_open(args){
+          if (!args[0]) throw new Error("open: missing file");
+          const abs = FS.resolve(args[0], shell.cwd);
+          openCodium({ openPath: abs });
+          println(`opened ${abs}`);
+        }
+        function cmd_mkdir(args){
+          if (!args[0]) throw new Error("mkdir: missing dir");
+          FS.ensureDir(args[0], shell.cwd);
+        }
+        function cmd_touch(args){
+          if (!args[0]) throw new Error("touch: missing file");
+          FS.writeFile(args[0], "", shell.cwd);
+        }
+        function cmd_write(args){
+          if (!args[0]) throw new Error("write: missing file");
+          const abs = FS.resolve(args[0], shell.cwd);
+          const cur = (()=>{ try{return FS.readFile(abs,"/");}catch{return ""} })();
+          const next = prompt("Write content for:\n" + abs, cur);
+          if (next !== null) FS.writeFile(abs, next, "/");
+        }
+        function cmd_rm(args){
+          if (!args[0]) throw new Error("rm: missing path");
+          FS.rm(args[0], shell.cwd);
+        }
+
+        const dispatch = (line) => {
+          const trimmed = line.trim();
+          if (!trimmed) return;
+          println(`${promptEl.textContent} ${trimmed}`);
+          const [cmd, ...args] = splitArgs(trimmed);
+          try{
+            switch(cmd){
+              case "help": help(); break;
+              case "ls": cmd_ls(args); break;
+              case "cd": cmd_cd(args); break;
+              case "pwd": cmd_pwd(); break;
+              case "cat": cmd_cat(args); break;
+              case "open": cmd_open(args); break;
+              case "mkdir": cmd_mkdir(args); break;
+              case "touch": cmd_touch(args); break;
+              case "write": cmd_write(args); break;
+              case "rm": cmd_rm(args); break;
+              case "clear": out.textContent=""; break;
+              default: println(`Unknown command: ${cmd}. Try: help`); break;
+            }
+          }catch(err){
+            println(String(err.message || err));
+          }
+        };
+
+        // boot text
+        setPrompt();
+        println("FakeOS Terminal — type 'help'");
+        println("");
+        help();
+
+        input.addEventListener("keydown", (e)=>{
+          if (e.key === "Enter"){
+            const v = input.value;
+            input.value = "";
+            shell.history.push(v);
+            shell.hIndex = shell.history.length;
+            dispatch(v);
+          } else if (e.key === "ArrowUp"){
+            e.preventDefault();
+            shell.hIndex = Math.max(0, shell.hIndex - 1);
+            input.value = shell.history[shell.hIndex] ?? "";
+          } else if (e.key === "ArrowDown"){
+            e.preventDefault();
+            shell.hIndex = Math.min(shell.history.length, shell.hIndex + 1);
+            input.value = shell.history[shell.hIndex] ?? "";
+          }
+        });
+
+        // autofocus when window focused
+        st.el.addEventListener("mousedown", ()=> setTimeout(()=>input.focus(), 0));
+        setTimeout(()=>input.focus(), 0);
+      }
+    });
+  }
+
+  function splitArgs(s){
+    const out = [];
+    let cur = "", q = null;
+    for (let i=0;i<s.length;i++){
+      const c = s[i];
+      if (q){
+        if (c === q) q = null;
+        else cur += c;
+      } else {
+        if (c === "'" || c === '"') q = c;
+        else if (c === " " || c === "\t"){
+          if (cur) { out.push(cur); cur=""; }
+        } else cur += c;
+      }
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
+
+  // Codium state
+  const CODIUM = {
+    winId: null,
+    openFiles: new Map(), // path -> {content, dirty}
+    activePath: null
+  };
+
+  function openCodium({ openPath = null } = {}){
+    if (CODIUM.winId && windows.get(CODIUM.winId)) {
+      bringToFront(CODIUM.winId);
+      if (openPath) codiumOpenFile(openPath);
+      return CODIUM.winId;
+    }
+
+    CODIUM.winId = createWindow({
+      appId:"codium",
+      title:"Codium — FakeFS Workspace",
+      x: 240, y: 70, w: 980, h: 640,
+      icon:"C",
+      contentBuilder: (st) => {
+        const root = document.createElement("div");
+        root.className = "codium";
+        root.innerHTML = `
+          <div class="sidebar">
+            <div class="paneHeader">
+              <span>EXPLORER</span>
+              <span class="pill">FakeFS</span>
+            </div>
+            <div class="tree"></div>
+            <div style="padding:10px; border-top:1px solid rgba(255,255,255,.08); display:flex; gap:8px;">
+              <button class="btn" data-act="refresh">Refresh</button>
+              <button class="btn" data-act="newfile">New</button>
+            </div>
+          </div>
+          <div class="main">
+            <div class="tabs"></div>
+            <div class="editorWrap">
+              <textarea class="editor" spellcheck="false"></textarea>
+            </div>
+            <div class="status">
+              <span class="left"></span>
+              <span class="right">
+                <span class="kbd">Ctrl</span>+<span class="kbd">S</span> save
+              </span>
+            </div>
+          </div>
+        `;
+        st.contentEl.appendChild(root);
+
+        const tree = root.querySelector(".tree");
+        const tabs = root.querySelector(".tabs");
+        const editor = root.querySelector("textarea.editor");
+        const statusL = root.querySelector(".status .left");
+
+        function refreshTree(){
+          tree.innerHTML = "";
+          const roots = ["/home/student", "/projects/pbinfo"];
+          for (const r of roots){
+            tree.appendChild(treeNode(r, true));
+            const items = safeList(r);
+            for (const it of items){
+              const p = FS.resolve(it.name, r);
+              tree.appendChild(treeNode(p, false, it.type));
+            }
+          }
+        }
+
+        function safeList(p){
+          try { return FS.listDir(p, "/"); } catch { return []; }
+        }
+
+        function treeNode(path, isRoot=false, type="dir"){
+          const n = document.createElement("div");
+          n.className = "node";
+          const name = isRoot ? path : path.split("/").pop();
+          const glyph = type === "dir" ? "📁" : "📄";
+          n.innerHTML = `<span class="t">${glyph}</span><span class="name">${escapeHtml(name)}</span><span style="margin-left:auto;color:var(--muted)">${type}</span>`;
+          n.addEventListener("dblclick", ()=>{
+            const node = FS.getNode(path, "/") || (path==="/" ? {type:"dir"} : null);
+            if (!node) return;
+            if (node.type === "file") codiumOpenFile(path);
+          });
+          n.addEventListener("click", ()=>{
+            statusL.textContent = path;
+          });
+          return n;
+        }
+
+        function renderTabs(){
+          tabs.innerHTML = "";
+          for (const [path, meta] of CODIUM.openFiles.entries()){
+            const t = document.createElement("div");
+            t.className = "tab" + (path === CODIUM.activePath ? " active" : "");
+            const base = path.split("/").pop();
+            t.textContent = base + (meta.dirty ? " •" : "");
+            t.title = path;
+            t.addEventListener("click", ()=>codiumActivate(path));
+            tabs.appendChild(t);
+          }
+        }
+
+        function codiumActivate(path){
+          CODIUM.activePath = path;
+          const meta = CODIUM.openFiles.get(path);
+          editor.value = meta?.content ?? "";
+          renderTabs();
+          statusL.textContent = path + (meta?.dirty ? " (modified)" : "");
+          setTitle(CODIUM.winId, `Codium — ${path.split("/").pop()}`);
+        }
+
+        function codiumOpenFile(path){
+          if (!CODIUM.openFiles.has(path)){
+            const content = FS.readFile(path, "/");
+            CODIUM.openFiles.set(path, { content, dirty:false });
+          }
+          codiumActivate(path);
+        }
+
+        function saveActive(){
+          const p = CODIUM.activePath;
+          if (!p) return;
+          const meta = CODIUM.openFiles.get(p);
+          if (!meta) return;
+          FS.writeFile(p, editor.value, "/");
+          meta.content = editor.value;
+          meta.dirty = false;
+          renderTabs();
+          statusL.textContent = p + " (saved)";
+        }
+
+        // wire
+        editor.addEventListener("input", ()=>{
+          const p = CODIUM.activePath;
+          if (!p) return;
+          const meta = CODIUM.openFiles.get(p);
+          if (!meta) return;
+          meta.content = editor.value;
+          meta.dirty = true;
+          renderTabs();
+          statusL.textContent = p + " (modified)";
+        });
+
+        root.querySelector('[data-act="refresh"]').addEventListener("click", refreshTree);
+        root.querySelector('[data-act="newfile"]').addEventListener("click", ()=>{
+          const p = prompt("New file path (absolute)", "/home/student/new.txt");
+          if (!p) return;
+          FS.writeFile(p, "", "/");
+          refreshTree();
+          codiumOpenFile(p);
+        });
+
+        // ctrl+s
+        st.el.addEventListener("keydown", (e)=>{
+          if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s"){
+            e.preventDefault();
+            saveActive();
+          }
+        });
+        // ensure key events reach window
+        st.el.tabIndex = 0;
+        st.el.addEventListener("mousedown", ()=>st.el.focus());
+
+        // init
+        refreshTree();
+        const defaultFile = openPath || "/projects/pbinfo/lesson.md";
+        codiumOpenFile(defaultFile);
+
+        // expose to other components
+        window.__FakeOS = window.__FakeOS || {};
+        window.__FakeOS.codiumOpen = codiumOpenFile;
+      }
+    });
+
+    if (openPath) codiumOpenFile(openPath);
+    return CODIUM.winId;
+
+    // local helper (available after window creation)
+    function codiumOpenFile(path){
+      // if window isn't built yet, it will be opened via openPath, so this is safe
+      try {
+        const hook = window.__FakeOS?.codiumOpen;
+        if (hook) hook(path);
+      } catch {}
+    }
+  }
+
+  function openBlender(){
+    return createWindow({
+      appId:"blender",
+      title:"Blender — Layout",
+      x: 320, y: 90, w: 1080, h: 650,
+      icon:"B",
+      contentBuilder: (st) => {
+        const root = document.createElement("div");
+        root.className = "blender";
+        root.innerHTML = `
+          <div class="left">
+            <div class="paneHeader"><span>OUTLINER</span><span class="pill">Scene</span></div>
+            <div class="list"></div>
+            <div style="padding:10px; border-top:1px solid rgba(255,255,255,.08); display:flex; gap:8px;">
+              <button class="btn" data-act="add">Add Cube</button>
+              <button class="btn" data-act="del">Delete</button>
+            </div>
+          </div>
+          <div class="viewport">
+            <div class="viewportTop">
+              <span class="pill">Viewport</span>
+              <span class="hint">Drag to orbit • Scroll to zoom • Click object to select</span>
+            </div>
+            <div class="canvasWrap"><canvas id="blCanvas"></canvas></div>
+          </div>
+          <div class="props">
+            <div class="paneHeader"><span>PROPERTIES</span><span class="pill">Transform</span></div>
+            <div class="propRow"><span>X</span><input type="range" min="-100" max="100" value="0" data-k="x"><b data-b="x">0</b></div>
+            <div class="propRow"><span>Y</span><input type="range" min="-100" max="100" value="0" data-k="y"><b data-b="y">0</b></div>
+            <div class="propRow"><span>Z</span><input type="range" min="-100" max="100" value="0" data-k="z"><b data-b="z">0</b></div>
+            <div class="propRow"><span>S</span><input type="range" min="10" max="200" value="100" data-k="s"><b data-b="s">100</b></div>
+          </div>
+        `;
+        st.contentEl.appendChild(root);
+
+        const list = root.querySelector(".list");
+        const canvas = root.querySelector("#blCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const scene = {
+          objects: [
+            { id: uid(), name:"Cube", x:0, y:0, z:0, s:100 }
+          ],
+          sel: null,
+          cam: { rot: 0.6, tilt: 0.9, zoom: 1.0 }
+        };
+        scene.sel = scene.objects[0].id;
+
+        function resizeCanvas(){
+          const r = canvas.getBoundingClientRect();
+          canvas.width = Math.floor(r.width * devicePixelRatio);
+          canvas.height = Math.floor(r.height * devicePixelRatio);
+          ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+          draw();
+        }
+
+        function renderList(){
+          list.innerHTML = "";
+          for (const o of scene.objects){
+            const it = document.createElement("div");
+            it.className = "item" + (o.id===scene.sel ? " active" : "");
+            it.innerHTML = `<span>${escapeHtml(o.name)}</span><span class="pill">MESH</span>`;
+            it.addEventListener("click", ()=>{ scene.sel = o.id; syncProps(); renderList(); draw(); });
+            list.appendChild(it);
+          }
+        }
+
+        const sliders = [...root.querySelectorAll('input[type="range"]')];
+        function getSel(){
+          return scene.objects.find(o=>o.id===scene.sel) || scene.objects[0];
+        }
+        function syncProps(){
+          const o = getSel();
+          for (const s of sliders){
+            s.value = String(o[s.dataset.k]);
+            root.querySelector(`[data-b="${s.dataset.k}"]`).textContent = String(o[s.dataset.k]);
+          }
+        }
+        sliders.forEach(s=>{
+          s.addEventListener("input", ()=>{
+            const o = getSel();
+            o[s.dataset.k] = Number(s.value);
+            root.querySelector(`[data-b="${s.dataset.k}"]`).textContent = s.value;
+            draw();
+          });
+        });
+
+        function project(o){
+          // fake 3D projection -> 2D
+          const cx = canvas.clientWidth/2, cy = canvas.clientHeight/2;
+          const rot = scene.cam.rot, tilt = scene.cam.tilt, zoom = scene.cam.zoom;
+          const x = o.x, y = o.y, z = o.z;
+
+          // rotate around Y (rot), then X (tilt)
+          const x1 = x*Math.cos(rot) + z*Math.sin(rot);
+          const z1 = -x*Math.sin(rot) + z*Math.cos(rot);
+          const y2 = y*Math.cos(tilt) - z1*Math.sin(tilt);
+          const z2 = y*Math.sin(tilt) + z1*Math.cos(tilt);
+
+          const scale = (0.8 + (z2/250)) * zoom;
+          return { x: cx + x1*scale, y: cy + y2*scale, s: o.s*0.6*scale };
+        }
+
+        function draw(){
+          const w = canvas.clientWidth, h = canvas.clientHeight;
+          ctx.clearRect(0,0,w,h);
+
+          // grid
+          ctx.globalAlpha = 0.55;
+          for (let x=0;x<w;x+=44){
+            ctx.strokeStyle = "rgba(255,255,255,0.05)";
+            ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
+          }
+          for (let y=0;y<h;y+=44){
+            ctx.strokeStyle = "rgba(255,255,255,0.05)";
+            ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+
+          // axis
+          const cx = w/2, cy = h/2;
+          ctx.strokeStyle = "rgba(106,166,255,0.55)";
+          ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx+140, cy); ctx.stroke();
+          ctx.strokeStyle = "rgba(55,214,122,0.55)";
+          ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy-140); ctx.stroke();
+          ctx.strokeStyle = "rgba(255,92,122,0.55)";
+          ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx-90, cy+90); ctx.stroke();
+
+          // objects
+          for (const o of scene.objects){
+            const p = project(o);
+            const sel = (o.id===scene.sel);
+            ctx.fillStyle = sel ? "rgba(106,166,255,0.18)" : "rgba(255,255,255,0.08)";
+            ctx.strokeStyle = sel ? "rgba(106,166,255,0.75)" : "rgba(255,255,255,0.18)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(p.x - p.s/2, p.y - p.s/2, p.s, p.s, 14);
+            ctx.fill(); ctx.stroke();
+
+            ctx.fillStyle = "rgba(215,221,230,0.85)";
+            ctx.font = "12px " + getComputedStyle(document.body).fontFamily;
+            ctx.fillText(o.name, p.x - p.s/2 + 10, p.y - p.s/2 + 18);
+          }
+        }
+
+        // orbit controls
+        let dragging=false, lastX=0, lastY=0;
+        canvas.addEventListener("mousedown", (e)=>{
+          dragging = true; lastX=e.clientX; lastY=e.clientY;
+        });
+        window.addEventListener("mouseup", ()=> dragging=false);
+        window.addEventListener("mousemove", (e)=>{
+          if (!dragging) return;
+          const dx = e.clientX - lastX;
+          const dy = e.clientY - lastY;
+          lastX=e.clientX; lastY=e.clientY;
+          scene.cam.rot += dx*0.004;
+          scene.cam.tilt = clamp(scene.cam.tilt + dy*0.004, 0.2, 1.4);
+          draw();
+        });
+        canvas.addEventListener("wheel", (e)=>{
+          e.preventDefault();
+          scene.cam.zoom = clamp(scene.cam.zoom + (e.deltaY<0 ? 0.06 : -0.06), 0.6, 1.8);
+          draw();
+        }, {passive:false});
+
+        // select object by click (approx)
+        canvas.addEventListener("click", (e)=>{
+          const x = e.offsetX, y = e.offsetY;
+          for (const o of [...scene.objects].reverse()){
+            const p = project(o);
+            if (x >= p.x - p.s/2 && x <= p.x + p.s/2 && y >= p.y - p.s/2 && y <= p.y + p.s/2){
+              scene.sel = o.id;
+              renderList();
+              syncProps();
+              draw();
+              break;
+            }
+          }
+        });
+
+        root.querySelector('[data-act="add"]').addEventListener("click", ()=>{
+          const idx = scene.objects.length + 1;
+          scene.objects.push({ id: uid(), name:`Cube.${String(idx).padStart(3,"0")}`, x:(idx*18)%80, y:-(idx*9)%60, z:-(idx*14)%80, s:100 });
+          scene.sel = scene.objects.at(-1).id;
+          renderList(); syncProps(); draw();
+        });
+        root.querySelector('[data-act="del"]').addEventListener("click", ()=>{
+          if (scene.objects.length <= 1) return;
+          const i = scene.objects.findIndex(o=>o.id===scene.sel);
+          if (i>=0) scene.objects.splice(i,1);
+          scene.sel = scene.objects[0].id;
+          renderList(); syncProps(); draw();
+        });
+
+        // handle resize
+        st.el.addEventListener("win:resize", resizeCanvas);
+        window.addEventListener("resize", resizeCanvas);
+
+        renderList();
+        syncProps();
+        setTimeout(resizeCanvas, 0);
+      }
+    });
+  }
+
+  function openVideoPad(){
+    return createWindow({
+      appId:"videopad",
+      title:"VideoPad — Project",
+      x: 360, y: 120, w: 1100, h: 680,
+      icon:"V",
+      contentBuilder: (st) => {
+        const root = document.createElement("div");
+        root.className = "videopad";
+        root.innerHTML = `
+          <div class="bin">
+            <div class="paneHeader"><span>MEDIA BIN</span><span class="pill">Assets</span></div>
+            <div class="binItems"></div>
+            <div style="padding:10px; border-top:1px solid rgba(255,255,255,.08); display:flex; gap:8px;">
+              <button class="btn" data-act="add">Import</button>
+              <button class="btn" data-act="toTl">Add to TL</button>
+            </div>
+          </div>
+          <div class="vpMain">
+            <div class="preview">
+              <header>
+                <span class="pill">Preview</span>
+                <span class="hint">Select media • Add to timeline • Drag clip edges to trim</span>
+              </header>
+              <div class="screen">
+                <div>
+                  <div style="font-size:14px; margin-bottom:6px; color:var(--text); font-family:var(--mono);" id="vpNow">No selection</div>
+                  <div style="font-size:12px; color:var(--muted); font-family:var(--mono);" id="vpMeta">—</div>
+                </div>
+              </div>
+            </div>
+            <div class="timeline">
+              <div class="paneHeader"><span>TIMELINE</span><span class="pill">Track 1</span></div>
+              <div class="tracks">
+                <div class="track" data-track="1"></div>
+              </div>
+            </div>
+          </div>
+        `;
+        st.contentEl.appendChild(root);
+
+        const bin = root.querySelector(".binItems");
+        const track = root.querySelector(".track");
+        const now = root.querySelector("#vpNow");
+        const meta = root.querySelector("#vpMeta");
+
+        const project = {
+          media: [
+            { id: uid(), name:"intro.mp4", dur: 8.5, type:"video" },
+            { id: uid(), name:"voice.wav", dur: 12.0, type:"audio" },
+            { id: uid(), name:"screen_capture.mp4", dur: 22.4, type:"video" }
+          ],
+          selected: null,
+          clips: [] // {id, mediaId, startPx, widthPx}
+        };
+
+        function renderBin(){
+          bin.innerHTML = "";
+          for (const m of project.media){
+            const el = document.createElement("div");
+            el.className = "media";
+            el.innerHTML = `<span>${escapeHtml(m.name)}</span><span class="pill">${m.type}</span>`;
+            el.addEventListener("click", ()=>{
+              project.selected = m.id;
+              now.textContent = m.name;
+              meta.textContent = `${m.type} • ${m.dur.toFixed(1)}s`;
+              [...bin.children].forEach(c=>c.style.borderColor="rgba(255,255,255,.10)");
+              el.style.borderColor = "rgba(106,166,255,.55)";
+            });
+            bin.appendChild(el);
+          }
+        }
+
+        function pxPerSecond(){ return 28; }
+        function renderTimeline(){
+          // clear existing clips
+          track.querySelectorAll(".clip").forEach(c=>c.remove());
+
+          for (const c of project.clips){
+            const m = project.media.find(x=>x.id===c.mediaId);
+            const el = document.createElement("div");
+            el.className = "clip";
+            el.style.left = c.startPx + "px";
+            el.style.width = c.widthPx + "px";
+            el.innerHTML = `<span>${escapeHtml(m?.name || "clip")}</span><small>${Math.max(1, Math.round(c.widthPx/pxPerSecond()))}s</small><span class="handle" title="Trim"></span>`;
+            track.appendChild(el);
+
+            // drag trim using handle (right edge)
+            const handle = el.querySelector(".handle");
+            let trimming=false, startX=0, startW=0;
+
+            handle.addEventListener("mousedown", (e)=>{
+              e.stopPropagation();
+              trimming=true; startX=e.clientX; startW=c.widthPx;
+              const onMove=(ev)=>{
+                if(!trimming) return;
+                c.widthPx = clamp(startW + (ev.clientX - startX), 110, 900);
+                el.style.width = c.widthPx + "px";
+                el.querySelector("small").textContent = `${Math.max(1, Math.round(c.widthPx/pxPerSecond()))}s`;
+              };
+              const onUp=()=>{
+                trimming=false;
+                window.removeEventListener("mousemove", onMove);
+                window.removeEventListener("mouseup", onUp);
+              };
+              window.addEventListener("mousemove", onMove);
+              window.addEventListener("mouseup", onUp);
+            });
+          }
+        }
+
+        root.querySelector('[data-act="add"]').addEventListener("click", ()=>{
+          const name = prompt("Import file name (fake):", "new_clip.mp4");
+          if (!name) return;
+          const dur = Number(prompt("Duration seconds:", "10")) || 10;
+          const type = name.toLowerCase().endsWith(".wav") ? "audio" : "video";
+          project.media.push({ id: uid(), name, dur, type });
+          renderBin();
+        });
+
+        root.querySelector('[data-act="toTl"]').addEventListener("click", ()=>{
+          const m = project.media.find(x=>x.id===project.selected);
+          if (!m) return alert("Select media first.");
+          const startPx = 12 + project.clips.reduce((a,c)=>a+c.widthPx+12, 0);
+          const widthPx = clamp(Math.round(m.dur*pxPerSecond()), 140, 800);
+          project.clips.push({ id: uid(), mediaId: m.id, startPx, widthPx });
+          renderTimeline();
+        });
+
+        renderBin();
+        renderTimeline();
+      }
+    });
+  }
+
+  /* ==========================================================
+     Launcher wiring
+  ========================================================== */
+  function launch(app){
+    startMenu.style.display = "none";
+    switch(app){
+      case "terminal": return openTerminal();
+      case "codium": return openCodium();
+      case "blender": return openBlender();
+      case "videopad": return openVideoPad();
+    }
+  }
+
+  // Start button/menu
+  startBtn.addEventListener("click", ()=>{
+    startMenu.style.display = (startMenu.style.display === "none" || !startMenu.style.display) ? "block" : "none";
+  });
+  window.addEventListener("mousedown", (e)=>{
+    if (!startMenu.contains(e.target) && e.target !== startBtn && !startBtn.contains(e.target)){
+      startMenu.style.display = "none";
+    }
+  });
+  startMenu.querySelectorAll(".startApp").forEach(el=>{
+    el.addEventListener("click", ()=>launch(el.dataset.app));
+  });
+
+  // Desktop icons
+  document.querySelectorAll(".icon").forEach(el=>{
+    el.addEventListener("dblclick", ()=>launch(el.dataset.app));
+    el.addEventListener("click", ()=>{ /* selection could be added */ });
+  });
+
+  // Clock
+  const clock = document.getElementById("clock");
+  setInterval(()=>{
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mm = String(d.getMinutes()).padStart(2,"0");
+    const ss = String(d.getSeconds()).padStart(2,"0");
+    clock.textContent = `${hh}:${mm}:${ss}`;
+  }, 250);
+
+  // Global shortcuts
+  window.addEventListener("keydown", (e)=>{
+    // Start menu
+    if (e.key === "Escape") startMenu.style.display = "none";
+
+    // Ctrl+Alt+T => Terminal
+    if (e.ctrlKey && e.altKey && e.key.toLowerCase() === "t"){
+      e.preventDefault();
+      launch("terminal");
+    }
+  });
+
+  // Boot: open Codium + Terminal
+  openCodium({ openPath: "/projects/pbinfo/lesson.md" });
+  openTerminal();
+
+})();
+</script>
+</body>
+</html>
